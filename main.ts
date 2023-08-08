@@ -44,6 +44,9 @@ async function main(
       const originalDate = unwrap(await readShootingDate(path))
       const diff = timeDiffRules.find(({ isIn }) => isIn(originalDate))?.diff ??
         0
+      if (diff === 0) {
+        continue
+      }
       const date = new Date(originalDate)
       date.setMinutes(date.getMinutes() + diff)
       files.push({ path, date })
