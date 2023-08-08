@@ -1,3 +1,4 @@
+import { formatDate } from 'https://raw.githubusercontent.com/482F/482F-ts-utils/v2.x.x/src/common.ts'
 import { Result } from 'https://raw.githubusercontent.com/482F/482F-ts-utils/v2.x.x/src/result.ts'
 
 export class ExpectedError extends Error {}
@@ -81,7 +82,7 @@ export async function parseCsvWithHeader<
   const encodings = ['shift-jis', 'utf-8']
   for (const encoding of encodings) {
     const text = new TextDecoder(encoding).decode(bytes)
-    const lines = text.split('\n')
+    const lines = text.split(/\r\n|\n/)
     const headerLine = lines[0]
     if (!headerLine) {
       continue
@@ -119,7 +120,8 @@ export async function parseCsvWithHeader<
           return [
             undefined,
             new ExpectedError(
-              'フィールドの形式が適切ではありません: ' + headers[i] + ':' +
+              'フィールドの形式が適切ではありません: ' + i + '行目, ' +
+                headers[i] + ':' +
                 field,
             ),
           ]
@@ -137,7 +139,51 @@ export async function parseCsvWithHeader<
     undefined,
     new ExpectedError(
       'ヘッダには次の項目が含まれる必要があります: [' +
-        expectedHeaders.join(',') + ']',
+        Object.keys(headerMap).join(',') + ']',
     ),
   ]
+}
+
+export function announceTime<R>(
+  name: string,
+  func: (doFunc: () => void) => R,
+  number: string | number,
+  labels = {
+    start: 'LABEL: start DATETIME',
+    end: 'LABEL: end   DATETIME',
+    progress: 'progress: I/A (PREDICTED_TIME)',
+  },
+): R {
+  const startTime = new Date().getTime()
+  const p = (num: number) => num.toString().padStart(2, '0')
+  const getPredictedTime = typeof number === 'number'
+    ? (i: number) => {
+      const predictedS = (Date.now() - startTime) * (number - i) / (i * 1000)
+      return `${p(predictedS / (60 * 60) | 0)}h ${p(predictedS / 60 | 0)}m ${
+        p(predictedS | 0)
+      }s`
+    }
+    : () => ''
+  const replacer = (str: string) =>
+    str.replace('LABEL', name).replace(
+      'DATETIME',
+      formatDate(new Date(), '$yyyy/$MM/$dd $HH:$mm:$ss'),
+    )
+  console.log(replacer(labels.start))
+  let i = 0
+  const progressLabel = labels.progress.replace('A', number.toString()) +
+    '\x1b[1A'
+  const result = func(() => {
+    i++
+    console.log(
+      progressLabel.replace('I', i.toString()).replace(
+        'PREDICTED_TIME',
+        getPredictedTime(i),
+      ),
+    )
+  })
+  Promise.resolve(result).then(() =>
+    console.log('\x1b[K' + replacer(labels.end))
+  )
+  return result
 }
