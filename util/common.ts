@@ -160,7 +160,7 @@ export function announceTime<R>(
     ? (i: number) => {
       const predictedS = (Date.now() - startTime) * (number - i) / (i * 1000)
       return `${p(predictedS / (60 * 60) | 0)}h ${p(predictedS / 60 | 0)}m ${
-        p(predictedS | 0)
+        p(predictedS % 60)
       }s`
     }
     : () => ''
