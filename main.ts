@@ -45,7 +45,7 @@ async function main(
       const diff = timeDiffRules.find(({ isIn }) => isIn(originalDate))?.diff ??
         0
       const date = new Date(originalDate)
-      date.setMinutes(date.getMinutes() + diff * -1)
+      date.setMinutes(date.getMinutes() + diff)
       files.push({ path, date })
       doFunc()
     }
